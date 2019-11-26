@@ -25,7 +25,7 @@ game = hlt.Game()
 # At this point "game" variable is populated with initial map data.
 # This is a good place to do computationally expensive start-up pre-processing.
 # As soon as you call "ready" function below, the 2 second per turn timer will start.
-game.ready("K.Bot v.2")
+game.ready("K.Bot v.3")
 
 # Now that your bot is initialized, save a message to yourself in the log file with some important information.
 #   Here, you log here your id, which you can always fetch from the game object by using my_id.
@@ -42,6 +42,24 @@ if away from shipyard and is not full and square is < 50: move to the place one 
 
 if can create ship: create the fucking ship
 '''
+
+def move_away(pos, dir): #helper to make ships move when navigating away
+    if game_map[pos].is_occupied:
+        num = random.randint(0,1)
+        if dir == Direction.North or dir == Direction.South:
+            if num == 0:
+                return Direction.East
+            else:
+                return Direction.West
+        elif dir == Direction.East or dir == Direction.West:
+            if num == 0:
+                return Direction.North
+            else:
+                return Direction.South
+        else:
+            print("mov_away error, pos: " + str(pos) + ", dir: " + str(dir))
+    else:
+        return dir
 
 while True:
     rand_move_num = 0
@@ -68,7 +86,7 @@ while True:
                 close_drop = drop
 
 
-        if ship.halite_amount > 900 or (ship.halite_amount >= 300+(game_map.calculate_distance(ship.position, close_drop.position)*20)+(game.turn_number) #+(10**(1+game.turn_number//100))
+        if ship.halite_amount > 900 or (ship.halite_amount >= 300+(game_map.calculate_distance(ship.position, close_drop.position)*20)+(game.turn_number*2)
                                         and game_map[ship.position].halite_amount <= 600):
             if ship.position == close_drop.position:
                 command_queue.append(ship.stay_still())
@@ -78,7 +96,7 @@ while True:
         elif ship.halite_amount >= 300+(game_map.calculate_distance(ship.position, close_drop.position)*20)+(game.turn_number*2) and game_map[ship.position].halite_amount > 600:
                 command_queue.append(ship.stay_still())
         else:
-            shipyard_dist = int(2+game.turn_number//150)   #**
+            shipyard_dist = int(3+game.turn_number//150)   #**
             if game.turn_number == 100 and shipyard_dist == 3:
                 shipyard_dist += 1
 
@@ -91,7 +109,7 @@ while True:
                     if game_map[ship.position.directional_offset(dir)].is_occupied or game_map[
                         ship.position.directional_offset(dir)].has_structure:
                         dir = game_map.naive_navigate(ship, ship.position.directional_offset(dir))
-                    command_queue.append(ship.move(dir))
+                    command_queue.append(ship.move(move_away(ship.position.directional_offset(dir),dir)))
                 else:
                     if game_map[ship.position].halite_amount > 700:
                         command_queue.append(ship.stay_still())
@@ -134,7 +152,7 @@ while True:
                                 if game_map[pos].is_occupied or game_map[pos].has_structure: #init position filter
                                     pass
                                 else:
-                                    if game_map.calculate_distance(ship.position, pos) > (shipyard_dist*2.5): #used to be 4
+                                    if game_map.calculate_distance(ship.position, pos) > (shipyard_dist*1.7): #used to be 4
                                         pass
                                     else: #not near shipyard, not too far
                                         good_moves.append(pos)
@@ -148,7 +166,8 @@ while True:
                             if const2 > const1:
                                 move = pos2
                     if game_map[move].halite_amount*.5 > game_map[ship.position].halite_amount:
-                        command_queue.append(ship.move(game_map.naive_navigate(ship, move)))
+                        dir = game_map.naive_navigate(ship, move)
+                        command_queue.append(ship.move(move_away(ship.position.directional_offset(dir),dir)))
                     else:
                         command_queue.append(ship.stay_still())
                 else:
