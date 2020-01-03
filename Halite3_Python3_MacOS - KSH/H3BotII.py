@@ -43,6 +43,9 @@ if away from shipyard and is not full and square is < 50: move to the place one 
 if can create ship: create the fucking ship
 '''
 
+stop_time = 280
+stop_ship_num = 1000
+
 while True:
     rand_move_num = 0
     # This loop handles each turn of the game. The game object changes every turn, and you refresh that state by
@@ -57,6 +60,7 @@ while True:
     command_queue = []
 
     ship_num = 0
+
     for ship in me.get_ships():
         # rand_move_num += 1
         # For each of your ships, move randomly if the ship is on a low halite location or the ship is full.
@@ -169,7 +173,11 @@ while True:
 
     # If the game is in the first 200 turns and you have enough halite, spawn a ship.
     # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
-    if me.halite_amount-constants.SHIP_COST > (game.turn_number*3) and game.turn_number < 275 and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
+    if game.turn_number == stop_time:
+        stop_ship_num = len(me.get_ships())
+
+    if len(me.get_ships()) < stop_ship_num and me.halite_amount-constants.SHIP_COST > (game.turn_number*3) and \
+            game.turn_number < stop_time and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
         command_queue.append(me.shipyard.spawn())
 
     # Send your moves back to the game environment, ending this turn.

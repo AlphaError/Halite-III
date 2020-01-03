@@ -43,23 +43,31 @@ if away from shipyard and is not full and square is < 50: move to the place one 
 if can create ship: create the fucking ship
 '''
 
-def move_away(pos, dir): #helper to make ships move when navigating away
+def reroute(ship, dir): #helper to make ships move when navigating away
+    #goal - to create a rerouting method that
+    pos = ship.position.directional_offset(dir)
     if game_map[pos].is_occupied:
-        num = random.randint(0,1)
+        num = random.randint(1,10)
         if dir == Direction.North or dir == Direction.South:
-            if num == 0:
+            if num%2 == 0:
+                # return reroute(ship,Direction.East)
                 return Direction.East
             else:
+                # return reroute(ship,Direction.West)
                 return Direction.West
         elif dir == Direction.East or dir == Direction.West:
-            if num == 0:
+            if num%2 == 0:
+                # return reroute(ship,Direction.North)
                 return Direction.North
             else:
                 return Direction.South
+                # return reroute(ship,Direction.South)
         else:
             print("mov_away error, pos: " + str(pos) + ", dir: " + str(dir))
     else:
         return dir
+stop_time = 280
+stop_ship_num = 1000
 
 while True:
     rand_move_num = 0
@@ -75,6 +83,7 @@ while True:
     command_queue = []
 
     ship_num = 0
+
     for ship in me.get_ships():
         # rand_move_num += 1
         # For each of your ships, move randomly if the ship is on a low halite location or the ship is full.
@@ -86,7 +95,7 @@ while True:
                 close_drop = drop
 
 
-        if ship.halite_amount > 900 or (ship.halite_amount >= 300+(game_map.calculate_distance(ship.position, close_drop.position)*20)+(game.turn_number*2)
+        if ship.halite_amount > 900 or (ship.halite_amount >= 300+(game_map.calculate_distance(ship.position, close_drop.position)*20)+(game.turn_number) #+(10**(1+game.turn_number//100))
                                         and game_map[ship.position].halite_amount <= 600):
             if ship.position == close_drop.position:
                 command_queue.append(ship.stay_still())
@@ -96,7 +105,7 @@ while True:
         elif ship.halite_amount >= 300+(game_map.calculate_distance(ship.position, close_drop.position)*20)+(game.turn_number*2) and game_map[ship.position].halite_amount > 600:
                 command_queue.append(ship.stay_still())
         else:
-            shipyard_dist = int(3+game.turn_number//150)   #**
+            shipyard_dist = int(2+game.turn_number//150)   #**
             if game.turn_number == 100 and shipyard_dist == 3:
                 shipyard_dist += 1
 
@@ -109,7 +118,7 @@ while True:
                     if game_map[ship.position.directional_offset(dir)].is_occupied or game_map[
                         ship.position.directional_offset(dir)].has_structure:
                         dir = game_map.naive_navigate(ship, ship.position.directional_offset(dir))
-                    command_queue.append(ship.move(move_away(ship.position.directional_offset(dir),dir)))
+                    command_queue.append(ship.move(dir))
                 else:
                     if game_map[ship.position].halite_amount > 700:
                         command_queue.append(ship.stay_still())
@@ -152,7 +161,7 @@ while True:
                                 if game_map[pos].is_occupied or game_map[pos].has_structure: #init position filter
                                     pass
                                 else:
-                                    if game_map.calculate_distance(ship.position, pos) > (shipyard_dist*1.7): #used to be 4
+                                    if game_map.calculate_distance(ship.position, pos) > (shipyard_dist*2.5): #used to be 4
                                         pass
                                     else: #not near shipyard, not too far
                                         good_moves.append(pos)
@@ -166,8 +175,7 @@ while True:
                             if const2 > const1:
                                 move = pos2
                     if game_map[move].halite_amount*.5 > game_map[ship.position].halite_amount:
-                        dir = game_map.naive_navigate(ship, move)
-                        command_queue.append(ship.move(move_away(ship.position.directional_offset(dir),dir)))
+                        command_queue.append(ship.move(game_map.naive_navigate(ship, move)))
                     else:
                         command_queue.append(ship.stay_still())
                 else:
@@ -188,7 +196,11 @@ while True:
 
     # If the game is in the first 200 turns and you have enough halite, spawn a ship.
     # Don't spawn a ship if you currently have a ship at port, though - the ships will collide.
-    if me.halite_amount-constants.SHIP_COST > (game.turn_number*3) and game.turn_number < 275 and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
+    if game.turn_number == stop_time:
+        stop_ship_num = len(me.get_ships())
+
+    if len(me.get_ships()) < stop_ship_num and me.halite_amount-constants.SHIP_COST > (game.turn_number*3) and \
+            game.turn_number < stop_time and me.halite_amount >= constants.SHIP_COST and not game_map[me.shipyard].is_occupied:
         command_queue.append(me.shipyard.spawn())
 
     # Send your moves back to the game environment, ending this turn.
